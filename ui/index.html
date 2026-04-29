@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ask My Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens ─────────────────────────────────────── */
+:root {
+  --bg:        #0a0c0f;
+  --bg2:       #0f1318;
+  --bg3:       #151b22;
+  --border:    #1e2730;
+  --border2:   #263040;
+  --amber:     #f0a500;
+  --amber2:    #ffc53d;
+  --amber-dim: rgba(240,165,0,0.12);
+  --amber-glow:rgba(240,165,0,0.06);
+  --green:     #3dd68c;
+  --red:       #f87171;
+  --blue:      #60a5fa;
+  --muted:     #4a5568;
+  --text:      #c9d1d9;
+  --text2:     #8b949e;
+  --text3:     #4a5568;
+  --mono:      'IBM Plex Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+  --radius:    4px;
+  --radius2:   8px;
+}
+
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Scan-line overlay ─────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.logo-icon svg { width: 16px; height: 16px; color: #0a0c0f; }
+
+.logo-text {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--amber);
+  letter-spacing: 0.05em;
+}
+
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-left: 38px;
+}
+
+/* ── Ingest panel ─────────────────────────────────────── */
+.ingest-panel {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.ingest-drop {
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius2);
+  padding: 20px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: var(--bg3);
+}
+
+.ingest-drop:hover,
+.ingest-drop.drag-over {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+}
+
+.ingest-drop input[type="file"] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+
+.ingest-drop-icon {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+  opacity: 0.6;
+}
+
+.ingest-drop-text {
+  font-size: 0.75rem;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+.ingest-drop-text span {
+  color: var(--amber);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+
+.ingest-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 8px;
+  background: var(--amber);
+  color: #0a0c0f;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+.ingest-btn:hover { background: var(--amber2); }
+.ingest-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ingest-status {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  min-height: 16px;
+  transition: all 0.2s;
+}
+.ingest-status.ok   { color: var(--green); }
+.ingest-status.err  { color: var(--red); }
+.ingest-status.busy { color: var(--amber); }
+
+/* ── Settings panel ─────────────────────────────────── */
+.settings-panel {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.setting-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text2);
+  letter-spacing: 0.04em;
+}
+
+/* Toggle */
+.toggle {
+  position: relative;
+  width: 32px; height: 18px;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--border2);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 14px; height: 14px;
+  background: var(--text3);
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+.toggle input:checked + .toggle-track { background: var(--amber-dim); border: 1px solid var(--amber); }
+.toggle input:checked + .toggle-track::after { transform: translateX(14px); background: var(--amber); }
+
+/* API URL input */
+.api-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  padding: 5px 8px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.api-input:focus { border-color: var(--amber); }
+
+/* ── Stats ───────────────────────────────────────────── */
+.stats-panel {
+  padding: 14px 20px;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+.stat-val {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--amber);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Main area ───────────────────────────────────────── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── Chat header ─────────────────────────────────────── */
+.chat-header {
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.chat-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.clear-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.15s;
+}
+.clear-btn:hover { border-color: var(--border2); color: var(--text2); }
+
+/* ── Messages area ───────────────────────────────────── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── Empty state ─────────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  opacity: 0.6;
+  padding: 40px;
+}
+
+.empty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.empty-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg3);
+}
+.empty-card:hover {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+  opacity: 1;
+}
+.empty-card-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--amber);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.empty-card-text {
+  font-size: 0.75rem;
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+.empty-title {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--text3);
+  letter-spacing: 0.1em;
+}
+
+/* ── Message bubbles ─────────────────────────────────── */
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: msg-in 0.25s ease-out;
+}
+
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg-role {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.msg.user .msg-role {
+  background: var(--amber-dim);
+  color: var(--amber);
+  border: 1px solid rgba(240,165,0,0.2);
+}
+
+.msg.assistant .msg-role {
+  background: rgba(61,214,140,0.08);
+  color: var(--green);
+  border: 1px solid rgba(61,214,140,0.15);
+}
+
+.msg-time {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+}
+
+.msg-body {
+  padding: 14px 16px;
+  border-radius: var(--radius2);
+  border: 1px solid var(--border);
+  line-height: 1.7;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg3);
+  max-width: 820px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg.user .msg-body {
+  background: var(--bg2);
+  color: var(--text);
+}
+
+/* Inline citation tags */
+.msg-body .cite {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--amber);
+  background: var(--amber-dim);
+  border: 1px solid rgba(240,165,0,0.25);
+  padding: 0 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.msg-body .cite:hover { background: rgba(240,165,0,0.22); }
+
+/* ── Sources strip ───────────────────────────────────── */
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  max-width: 820px;
+}
+
+.source-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  max-width: 240px;
+}
+.source-chip:hover { border-color: var(--amber); color: var(--amber); }
+.source-chip .chip-n {
+  color: var(--amber);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.source-chip .chip-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Latency bar ─────────────────────────────────────── */
+.latency-bar {
+  display: flex;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 820px;
+}
+
+.lat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lat-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lat-val {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--amber);
+  font-weight: 500;
+}
+
+.lat-sep { color: var(--border2); }
+
+/* ── Thinking indicator ──────────────────────────────── */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text2);
+  max-width: 280px;
+  animation: msg-in 0.2s ease-out;
+}
+
+.thinking-dots { display: flex; gap: 4px; }
+.thinking-dots span {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: dot-bounce 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── Source tooltip ──────────────────────────────────── */
+.tooltip {
+  position: fixed;
+  z-index: 999;
+  max-width: 340px;
+  background: var(--bg2);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius2);
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.15s;
+}
+.tooltip.visible { opacity: 1; transform: translateY(0); }
+.tooltip-source {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--amber);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+.tooltip-excerpt {
+  font-size: 0.75rem;
+  color: var(--text2);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Input area ──────────────────────────────────────── */
+.input-area {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.input-wrap {
+  flex: 1;
+  position: relative;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  transition: border-color 0.15s;
+}
+
+.input-wrap:focus-within { border-color: var(--amber); }
+
+textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  padding: 12px 44px 12px 14px;
+  min-height: 48px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+textarea::placeholder { color: var(--text3); }
+
+.input-hint {
+  position: absolute;
+  bottom: 9px; right: 10px;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  pointer-events: none;
+}
+
+.send-btn {
+  width: 48px; height: 48px;
+  background: var(--amber);
+  border: none;
+  border-radius: var(--radius2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.send-btn:hover { background: var(--amber2); transform: scale(1.03); }
+.send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.send-btn svg { width: 18px; height: 18px; color: #0a0c0f; }
+
+.input-footer {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.input-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 2px 6px;
+  letter-spacing: 0.05em;
+  cursor: default;
+}
+
+.tag.active {
+  color: var(--amber);
+  border-color: rgba(240,165,0,0.3);
+  background: var(--amber-dim);
+}
+
+.char-count {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--text3);
+}
+
+/* ── Notification toast ──────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 80px; right: 24px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius2);
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  transform: translateY(10px);
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 200;
+  max-width: 280px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok   { border-left: 3px solid var(--green); }
+.toast.err  { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--amber); }
+
+/* ── Scrollbar thin for textarea ─────────────────────── */
+textarea::-webkit-scrollbar { width: 3px; }
+textarea::-webkit-scrollbar-thumb { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M2 4h12M2 8h8M2 12h10"/>
+            <circle cx="13" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+            <path d="M13 9.5V10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="logo-text">ASK_MY_DOCS</span>
+      </div>
+      <div class="logo-sub">RAG // GEMINI 2.0</div>
+    </div>
+
+    <!-- Ingest -->
+    <div class="ingest-panel">
+      <div class="panel-label">Ingest Documents</div>
+      <div class="ingest-drop" id="dropZone">
+        <input type="file" id="fileInput" multiple accept=".pdf,.docx,.md,.txt,.rst">
+        <div class="ingest-drop-icon">⬆</div>
+        <div class="ingest-drop-text">
+          Drop files or <span>browse</span><br>
+          PDF · DOCX · MD · TXT
+        </div>
+      </div>
+      <div id="selectedFiles" style="margin-top:8px;font-family:var(--mono);font-size:0.63rem;color:var(--text2);min-height:14px;"></div>
+      <button class="ingest-btn" id="ingestBtn" disabled>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        INDEX DOCUMENTS
+      </button>
+      <div class="ingest-status" id="ingestStatus"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings-panel">
+      <div class="panel-label">Configuration</div>
+
+      <div style="margin-bottom:8px;">
+        <div class="panel-label" style="margin-bottom:5px;">API endpoint</div>
+        <input class="api-input" id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000">
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">HyDE expansion</span>
+        <label class="toggle">
+          <input type="checkbox" id="hydeToggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Show latency</span>
+        <label class="toggle">
+          <input type="checkbox" id="latencyToggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Multi-turn memory</span>
+        <label class="toggle">
+          <input type="checkbox" id="memoryToggle" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-panel">
+      <div class="panel-label" style="margin-bottom:10px;">Index Stats</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="statVectors">—</div>
+          <div class="stat-label">Vectors</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statDocs">—</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statLatency">—</div>
+          <div class="stat-label">Avg ms</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="statQueries">0</div>
+          <div class="stat-label">Queries</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ──────────────────────────────────────────────── -->
+  <main class="main">
+
+    <div class="chat-header">
+      <div class="chat-title">
+        <span class="status-dot" id="statusDot"></span>
+        RETRIEVAL_AUGMENTED_GENERATION
+      </div>
+      <button class="clear-btn" id="clearBtn">CLEAR SESSION</button>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-title">// ingest documents → ask questions</div>
+        <div class="empty-grid">
+          <div class="empty-card" onclick="fillQuery('Summarise the key findings from the documents')">
+            <div class="empty-card-label">Summarise</div>
+            <div class="empty-card-text">Summarise the key findings from the documents</div>
+          </div>
+          <div class="empty-card" onclick="fillQuery('What are the main concepts explained?')">
+            <div class="empty-card-label">Explore</div>
+            <div class="empty-card-text">What are the main concepts explained?</div>
+          </div>
+          <div class="empty-card" onclick="fillQuery('List the important definitions or terms')">
+            <div class="empty-card-label">Definitions</div>
+            <div class="empty-card-text">List the important definitions or terms</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <div class="input-wrap">
+          <textarea
+            id="queryInput"
+            rows="1"
+            placeholder="Ask a question about your documents..."
+            maxlength="2000"
+          ></textarea>
+          <span class="input-hint">↵</span>
+        </div>
+        <button class="send-btn" id="sendBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-footer">
+        <div class="input-tags">
+          <span class="tag active" id="tagModel">GEMINI-2.0-FLASH</span>
+          <span class="tag" id="tagHyde">HYDE: OFF</span>
+          <span class="tag" id="tagMemory">MEMORY: ON</span>
+        </div>
+        <span class="char-count" id="charCount">0 / 2000</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Source tooltip -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-source" id="tooltipSource"></div>
+  <div class="tooltip-excerpt" id="tooltipExcerpt"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ─── State ────────────────────────────────────────────────────── */
+const state = {
+  conversationHistory: [],
+  totalLatencies: [],
+  queryCount: 0,
+  sessionDocs: 0,
+  loading: false,
+  selectedFiles: [],
+};
+
+/* ─── DOM refs ─────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const messages   = $('messages');
+const emptyState = $('emptyState');
+const queryInput = $('queryInput');
+const sendBtn    = $('sendBtn');
+const ingestBtn  = $('ingestBtn');
+const fileInput  = $('fileInput');
+const dropZone   = $('dropZone');
+const tooltip    = $('tooltip');
+const toast      = $('toast');
+
+/* ─── Utility ──────────────────────────────────────────────────── */
+function apiBase() {
+  return ($('apiUrl').value || 'http://localhost:8000').replace(/\/$/, '');
+}
+
+function now() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function showToast(msg, type = 'info', duration = 3000) {
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+function hideEmpty() {
+  if (emptyState && emptyState.parentNode) emptyState.remove();
+}
+
+function scrollBottom() {
+  requestAnimationFrame(() => { messages.scrollTop = messages.scrollHeight; });
+}
+
+function fmtMs(ms) {
+  return ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : Math.round(ms) + 'ms';
+}
+
+/* ─── Citation rendering ───────────────────────────────────────── */
+function renderCitations(text, sources) {
+  return text.replace(/\[src-(\d+)\]/g, (match, n) => {
+    const src = sources[parseInt(n) - 1];
+    if (!src) return match;
+    const path = src.source.split('/').pop() || src.source;
+    const page = src.page ? ` p.${src.page}` : '';
+    return `<span class="cite" data-src-idx="${parseInt(n)-1}">[${n}]</span>`;
+  });
+}
+
+/* ─── Stats update ─────────────────────────────────────────────── */
+function updateStats() {
+  $('statQueries').textContent = state.queryCount;
+  $('statDocs').textContent = state.sessionDocs;
+  if (state.totalLatencies.length) {
+    const avg = state.totalLatencies.reduce((a, b) => a + b, 0) / state.totalLatencies.length;
+    $('statLatency').textContent = Math.round(avg);
+  }
+}
+
+async function fetchStats() {
+  try {
+    const r = await fetch(`${apiBase()}/stats`);
+    if (r.ok) {
+      const d = await r.json();
+      $('statVectors').textContent = (d.vectors_count ?? '—').toLocaleString();
+    }
+  } catch { $('statVectors').textContent = '—'; }
+}
+
+/* ─── Message building ─────────────────────────────────────────── */
+function appendUserMsg(text) {
+  hideEmpty();
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `
+    <div class="msg-meta">
+      <span class="msg-role">YOU</span>
+      <span class="msg-time">${now()}</span>
+    </div>
+    <div class="msg-body">${escapeHtml(text)}</div>
+  `;
+  messages.appendChild(div);
+  scrollBottom();
+}
+
+function appendThinking() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.id = 'thinking-msg';
+  div.innerHTML = `
+    <div class="msg-meta">
+      <span class="msg-role">GEMINI</span>
+      <span class="msg-time">${now()}</span>
+    </div>
+    <div class="thinking">
+      <div class="thinking-dots"><span></span><span></span><span></span></div>
+      retrieving + generating...
+    </div>
+  `;
+  messages.appendChild(div);
+  scrollBottom();
+  return div;
+}
+
+function replaceThinking(data) {
+  const old = $('thinking-msg');
+  if (old) old.remove();
+
+  const showLat = $('latencyToggle').checked;
+  const sources = data.sources || [];
+
+  const latHtml = showLat ? `
+    <div class="latency-bar">
+      <div class="lat-item"><span class="lat-label">retrieval</span><span class="lat-val">${fmtMs(data.retrieval_ms)}</span></div>
+      <span class="lat-sep">·</span>
+      <div class="lat-item"><span class="lat-label">rerank</span><span class="lat-val">${fmtMs(data.rerank_ms)}</span></div>
+      <span class="lat-sep">·</span>
+      <div class="lat-item"><span class="lat-label">generate</span><span class="lat-val">${fmtMs(data.generation_ms)}</span></div>
+      <span class="lat-sep">·</span>
+      <div class="lat-item"><span class="lat-label">total</span><span class="lat-val">${fmtMs(data.total_ms)}</span></div>
+    </div>
+  ` : '';
+
+  const sourcesHtml = sources.length ? `
+    <div class="sources">
+      ${sources.map((s, i) => {
+        const path = s.source.split('/').pop() || s.source;
+        const page = s.page ? ` · p.${s.page}` : '';
+        return `<div class="source-chip"
+          data-excerpt="${escapeAttr(s.excerpt || '')}"
+          data-source="${escapeAttr(s.source)}"
+        ><span class="chip-n">[${i+1}]</span><span class="chip-path">${escapeHtml(path)}${page}</span></div>`;
+      }).join('')}
+    </div>
+  ` : '';
+
+  const bodyHtml = renderCitations(escapeHtml(data.answer), sources);
+
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.innerHTML = `
+    <div class="msg-meta">
+      <span class="msg-role">GEMINI</span>
+      <span class="msg-time">${now()}</span>
+      ${data.model ? `<span class="tag" style="margin-left:4px">${escapeHtml(data.model.toUpperCase())}</span>` : ''}
+    </div>
+    <div class="msg-body">${bodyHtml}</div>
+    ${sourcesHtml}
+    ${latHtml}
+  `;
+  messages.appendChild(div);
+
+  // Attach tooltip handlers to citations
+  div.querySelectorAll('.cite').forEach(el => {
+    el.addEventListener('mouseenter', e => showCiteTooltip(e, sources));
+    el.addEventListener('mouseleave', hideCiteTooltip);
+  });
+
+  // Attach tooltip handlers to source chips
+  div.querySelectorAll('.source-chip').forEach(el => {
+    el.addEventListener('mouseenter', e => showChipTooltip(e));
+    el.addEventListener('mouseleave', hideCiteTooltip);
+  });
+
+  scrollBottom();
+}
+
+function appendErrorMsg(text) {
+  const old = $('thinking-msg');
+  if (old) old.remove();
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.innerHTML = `
+    <div class="msg-meta">
+      <span class="msg-role" style="color:var(--red);border-color:rgba(248,113,113,0.2);background:rgba(248,113,113,0.07)">ERROR</span>
+      <span class="msg-time">${now()}</span>
+    </div>
+    <div class="msg-body" style="border-color:rgba(248,113,113,0.2);color:var(--red)">${escapeHtml(text)}</div>
+  `;
+  messages.appendChild(div);
+  scrollBottom();
+}
+
+/* ─── Tooltip ──────────────────────────────────────────────────── */
+function showCiteTooltip(e, sources) {
+  const idx = parseInt(e.target.dataset.srcIdx);
+  const src = sources[idx];
+  if (!src) return;
+  $('tooltipSource').textContent = src.source + (src.page ? ` · page ${src.page}` : '');
+  $('tooltipExcerpt').textContent = src.excerpt || 'No excerpt available.';
+  positionTooltip(e);
+  tooltip.classList.add('visible');
+}
+
+function showChipTooltip(e) {
+  $('tooltipSource').textContent = e.currentTarget.dataset.source;
+  $('tooltipExcerpt').textContent = e.currentTarget.dataset.excerpt || 'No excerpt.';
+  positionTooltip(e);
+  tooltip.classList.add('visible');
+}
+
+function hideCiteTooltip() {
+  tooltip.classList.remove('visible');
+}
+
+function positionTooltip(e) {
+  const rect = e.target.getBoundingClientRect();
+  const tw = 340;
+  let left = rect.left;
+  if (left + tw > window.innerWidth - 10) left = window.innerWidth - tw - 10;
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = (rect.top - 10 - tooltip.offsetHeight || rect.top - 100) + 'px';
+  // Re-calc after show
+  requestAnimationFrame(() => {
+    const th = tooltip.offsetHeight;
+    tooltip.style.top = Math.max(8, rect.top - th - 8) + 'px';
+  });
+}
+
+/* ─── Send query ───────────────────────────────────────────────── */
+async function sendQuery() {
+  const query = queryInput.value.trim();
+  if (!query || state.loading) return;
+
+  state.loading = true;
+  sendBtn.disabled = true;
+  queryInput.disabled = true;
+
+  const useHyde   = $('hydeToggle').checked;
+  const useMemory = $('memoryToggle').checked;
+
+  appendUserMsg(query);
+  const thinkingEl = appendThinking();
+
+  const history = useMemory ? [...state.conversationHistory] : [];
+
+  try {
+    const res = await fetch(`${apiBase()}/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        use_hyde: useHyde,
+        conversation_history: history,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    replaceThinking(data);
+
+    // Update conversation history
+    if (useMemory) {
+      state.conversationHistory.push({ role: 'user', content: query });
+      state.conversationHistory.push({ role: 'assistant', content: data.answer });
+      // Keep last 10 turns (20 messages)
+      if (state.conversationHistory.length > 20) {
+        state.conversationHistory = state.conversationHistory.slice(-20);
+      }
+    }
+
+    state.queryCount++;
+    state.totalLatencies.push(data.total_ms);
+    updateStats();
+
+    if (data.has_uncited_claims) {
+      showToast('⚠ Response may contain uncited claims', 'err', 4000);
+    }
+
+  } catch (err) {
+    appendErrorMsg(err.message || 'Request failed. Is the API server running?');
+    showToast(err.message, 'err');
+  } finally {
+    state.loading = false;
+    sendBtn.disabled = false;
+    queryInput.disabled = false;
+    queryInput.value = '';
+    queryInput.style.height = 'auto';
+    $('charCount').textContent = '0 / 2000';
+    queryInput.focus();
+  }
+}
+
+/* ─── File handling ────────────────────────────────────────────── */
+fileInput.addEventListener('change', e => {
+  state.selectedFiles = Array.from(e.target.files);
+  updateFileDisplay();
+});
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  state.selectedFiles = Array.from(e.dataTransfer.files);
+  updateFileDisplay();
+});
+
+function updateFileDisplay() {
+  const el = $('selectedFiles');
+  ingestBtn.disabled = state.selectedFiles.length === 0;
+  if (state.selectedFiles.length === 0) {
+    el.textContent = '';
+    return;
+  }
+  const names = state.selectedFiles.map(f => f.name).join(', ');
+  el.textContent = `${state.selectedFiles.length} file(s): ${names.length > 60 ? names.slice(0, 57) + '...' : names}`;
+}
+
+ingestBtn.addEventListener('click', async () => {
+  if (state.selectedFiles.length === 0) return;
+
+  ingestBtn.disabled = true;
+  const statusEl = $('ingestStatus');
+  statusEl.className = 'ingest-status busy';
+  statusEl.textContent = '⟳ indexing...';
+
+  // Since we can't upload files directly to the FastAPI /ingest endpoint
+  // (which expects a server-side path), we show the user the curl command
+  // and post to /ingest with the first file's name as a demonstration.
+  // In a real deployment, files would be uploaded via a multipart endpoint.
+  const paths = state.selectedFiles.map(f => f.name).join(', ');
+
+  // Try calling the API with a path (works when UI is served from same machine as API)
+  try {
+    const body = { path: state.selectedFiles[0].name };
+    const res = await fetch(`${apiBase()}/ingest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const d = await res.json();
+      statusEl.className = 'ingest-status ok';
+      statusEl.textContent = `✓ ${d.total_chunks} chunks · ${d.total_documents} doc(s)`;
+      state.sessionDocs += d.total_documents;
+      updateStats();
+      fetchStats();
+      showToast(`Indexed ${d.total_chunks} chunks`, 'ok');
+    } else {
+      // Show helpful hint when running locally
+      statusEl.className = 'ingest-status err';
+      statusEl.textContent = '⚠ Use CLI for ingestion (see README)';
+      showToast('Tip: run  python cli.py ingest ./your-docs/', 'info', 5000);
+    }
+  } catch {
+    statusEl.className = 'ingest-status err';
+    statusEl.textContent = '⚠ API unreachable';
+    showToast('Start the API: uvicorn api.main:app', 'err', 5000);
+  } finally {
+    ingestBtn.disabled = false;
+  }
+});
+
+/* ─── Input behavior ───────────────────────────────────────────── */
+queryInput.addEventListener('input', () => {
+  const len = queryInput.value.length;
+  $('charCount').textContent = `${len} / 2000`;
+  sendBtn.disabled = len < 3 || state.loading;
+
+  // Auto-resize
+  queryInput.style.height = 'auto';
+  queryInput.style.height = Math.min(queryInput.scrollHeight, 140) + 'px';
+});
+
+queryInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!sendBtn.disabled) sendQuery();
+  }
+});
+
+sendBtn.addEventListener('click', sendQuery);
+
+/* ─── Toggle UI labels ─────────────────────────────────────────── */
+$('hydeToggle').addEventListener('change', e => {
+  $('tagHyde').textContent = `HYDE: ${e.target.checked ? 'ON' : 'OFF'}`;
+  $('tagHyde').className = `tag ${e.target.checked ? 'active' : ''}`;
+});
+
+$('memoryToggle').addEventListener('change', e => {
+  $('tagMemory').textContent = `MEMORY: ${e.target.checked ? 'ON' : 'OFF'}`;
+  if (!e.target.checked) state.conversationHistory = [];
+});
+
+/* ─── Clear session ────────────────────────────────────────────── */
+$('clearBtn').addEventListener('click', () => {
+  state.conversationHistory = [];
+  state.queryCount = 0;
+  state.totalLatencies = [];
+  messages.innerHTML = `
+    <div class="empty-state" id="emptyState">
+      <div class="empty-title">// session cleared</div>
+      <div class="empty-grid">
+        <div class="empty-card" onclick="fillQuery('Summarise the key findings from the documents')">
+          <div class="empty-card-label">Summarise</div>
+          <div class="empty-card-text">Summarise the key findings from the documents</div>
+        </div>
+        <div class="empty-card" onclick="fillQuery('What are the main concepts explained?')">
+          <div class="empty-card-label">Explore</div>
+          <div class="empty-card-text">What are the main concepts explained?</div>
+        </div>
+        <div class="empty-card" onclick="fillQuery('List the important definitions or terms')">
+          <div class="empty-card-label">Definitions</div>
+          <div class="empty-card-text">List the important definitions or terms</div>
+        </div>
+      </div>
+    </div>`;
+  updateStats();
+  showToast('Session cleared', 'info', 2000);
+});
+
+/* ─── Example query helper ─────────────────────────────────────── */
+function fillQuery(text) {
+  queryInput.value = text;
+  queryInput.dispatchEvent(new Event('input'));
+  queryInput.focus();
+}
+
+/* ─── HTML escape ──────────────────────────────────────────────── */
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* ─── Init ─────────────────────────────────────────────────────── */
+fetchStats();
+setInterval(fetchStats, 30000);
+queryInput.focus();
+</script>
+</body>
+</html>
