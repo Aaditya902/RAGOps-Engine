@@ -22,11 +22,13 @@ def configure_logging() -> None:
         processors=[
             structlog.contextvars.merge_contextvars,
             structlog.stdlib.add_log_level,
-            structlog.stdlib.add_logger_name,
+            # NOTE: structlog.stdlib.add_logger_name is intentionally excluded.
+            # It requires a stdlib LoggerFactory backend. We use PrintLoggerFactory
+            # for direct stdout writes — add_logger_name raises AttributeError with it.
             structlog.processors.TimeStamper(fmt="iso"),
             structlog.processors.StackInfoRenderer(),
             structlog.processors.format_exc_info,
-            structlog.processors.JSONRenderer(),   # Factor XI: machine-readable stream
+            structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(log_level),
         context_class=dict,
